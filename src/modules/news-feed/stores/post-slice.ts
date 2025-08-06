@@ -1,7 +1,8 @@
 import { createSlice, createAsyncThunk, type PayloadAction } from '@reduxjs/toolkit';
 import axios from 'axios';
-import type { Post, PostsResponse } from '../types/post.interface';
-import type { RootState } from './index'; // импортируй RootState из store
+
+import type { RootState } from './index';
+import type { Post, PostsResponse, PostToggleReactionPayload } from '../types/post.interface';
 
 interface PostsState {
   items: Post[];
@@ -34,11 +35,7 @@ export const fetchPosts = createAsyncThunk<
   {
     condition: (_, { getState }) => {
       const { posts } = getState();
-      // Если уже идёт загрузка — отменяем вызов
-      if (posts.loading) {
-        return false;
-      }
-      return true;
+      return !posts.loading;
     },
   }
 );
@@ -46,19 +43,41 @@ export const fetchPosts = createAsyncThunk<
 const postsSlice = createSlice({
   name: 'posts',
   initialState,
-  reducers: {},
+  reducers: {
+    toggleReaction: (
+      state,
+      { payload: { postId, type } }: PayloadAction<PostToggleReactionPayload>
+    ) => {
+      const post = state.items.find((p) => p.id === postId);
+      if (!post) return;
+
+      const keys = {
+        like: { flag: 'liked', count: 'likes' },
+        dislike: { flag: 'disliked', count: 'dislikes' },
+      } as const;
+
+      const current = keys[type];
+      const opposite = type === 'like' ? keys.dislike : keys.like;
+
+      post.reactions[current.count] += post[current.flag] ? -1 : 1;
+      post[current.flag] = !post[current.flag];
+
+      if (post[opposite.flag]) {
+        post.reactions[opposite.count] -= 1;
+        post[opposite.flag] = false;
+      }
+    },
+  },
   extraReducers: (builder) => {
     builder
       .addCase(fetchPosts.pending, (state) => {
         state.loading = true;
       })
       .addCase(fetchPosts.fulfilled, (state, action: PayloadAction<PostsResponse>) => {
-        state.items = [...state.items, ...action.payload.posts];
+        state.items.push(...action.payload.posts);
         state.skip += state.limit;
         state.loading = false;
-        if (state.items.length >= action.payload.total) {
-          state.hasMore = false;
-        }
+        state.hasMore = state.items.length < action.payload.total;
       })
       .addCase(fetchPosts.rejected, (state) => {
         state.loading = false;
@@ -66,4 +85,5 @@ const postsSlice = createSlice({
   },
 });
 
+export const { toggleReaction } = postsSlice.actions;
 export default postsSlice.reducer;

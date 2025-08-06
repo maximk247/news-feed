@@ -1,3 +1,5 @@
+export type ReactionType = 'like' | 'dislike';
+
 export interface Post {
   id: number;
   title: string;
@@ -7,6 +9,8 @@ export interface Post {
     likes: number;
     dislikes: number;
   };
+  liked?: boolean;
+  disliked?: boolean;
 }
 
 export interface PostsResponse {
@@ -15,3 +19,8 @@ export interface PostsResponse {
   skip: number;
   limit: number;
 }
+
+export type PostToggleReactionPayload = {
+  postId: number;
+  type: ReactionType;
+};

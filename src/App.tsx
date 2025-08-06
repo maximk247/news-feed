@@ -3,7 +3,6 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import DefaultLayout from './layouts/DefaultLayout';
 import NewsFeedPage from './modules/news-feed/pages/NewsFeedPage';
 
-
 const App: React.FC = () => {
   return (
     <BrowserRouter>
